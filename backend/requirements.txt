@@ -1,0 +1,6 @@
+pypdf
+reportlab
+fastapi
+uvicorn
+python-multipart
+pydantic

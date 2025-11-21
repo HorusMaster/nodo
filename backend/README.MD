@@ -1,3 +1,8 @@
+## To execute
+
+uvicorn main:app --reload
+
+
 Nodo para en  base a una plantilla generar  informacion y cotizaciones
 
 
