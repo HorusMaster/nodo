@@ -6,45 +6,57 @@ from pdf_generator import generate_pdf_bytes
 
 app = FastAPI()
 
-class InvoiceItem(BaseModel):
-    folio: str
-    emisor: str
-    receptor: str
-    fecha_hora_emision: str
+class ProductItem(BaseModel):
     producto: str
     cantidad: float
     unidad: str
     precio_unitario: float
     importe: float
+
+class InvoiceData(BaseModel):
+    folio: str
+    emisor: str
+    receptor: str
+    fecha_hora_emision: str = None # Optional, or alias "fecha/hora_emision"
     subtotal: float
     IVA: float
     total_factura: float
+    productos: list[ProductItem]
 
     class Config:
-        # Allow both snake_case and the keys from the example (some have special chars like '/')
-        # But for simplicity in Pydantic, we map them manually or use alias.
-        # Let's use a dict for the input payload to be flexible with keys like "fecha/hora_emision"
-        extra = "allow" 
+        extra = "allow"
 
 @app.post("/generate-pdf")
-async def generate_pdf(payload: dict):
+async def generate_pdf(payload: list[dict] | dict):
     """
-    Receives a JSON payload, selects a template based on 'emisor',
+    Receives a JSON payload (list or dict), selects a template based on 'emisor',
     and returns a generated PDF.
     """
-    # Extract the first item if it's a list, or use the dict directly
-    # The user example showed a list "data = [{...}]" but the request says "payload"
-    # We'll handle both single dict or list of dicts (taking the first one)
-    data_item = payload
+    # Handle list input (n8n often sends a list of items)
     if isinstance(payload, list):
         if not payload:
             raise HTTPException(status_code=400, detail="Empty list provided")
-        data_item = payload[0]
+        raw_data = payload[0]
+    else:
+        raw_data = payload
+
+    # Normalize keys if needed (e.g. "fecha/hora_emision" -> "fecha_hora_emision")
+    # For simplicity, we'll just work with the dict directly to pass to the generator
     
-    emisor = data_item.get("emisor")
+    emisor = raw_data.get("emisor")
     if not emisor:
         raise HTTPException(status_code=400, detail="Missing 'emisor' field")
 
+    # Flatten data for the PDF generator
+    # The generator expects keys like 'producto', 'cantidad' at the top level.
+    # We will take the first product from the list.
+    pdf_data = raw_data.copy()
+    
+    productos = raw_data.get("productos", [])
+    if productos and isinstance(productos, list) and len(productos) > 0:
+        first_product = productos[0]
+        pdf_data.update(first_product) # Merge product fields into top level
+    
     # Template selection logic
     template_map = {
         "LEARN&WELL22": "pantillas/L&W COTIZACION.pdf"
@@ -53,21 +65,19 @@ async def generate_pdf(payload: dict):
     template_path = template_map.get(emisor)
     
     if not template_path:
-        # Fallback or error? For now, error if not found, or maybe a default?
-        # Let's try to find a default or error.
         raise HTTPException(status_code=404, detail=f"No template found for emisor: {emisor}")
     
     if not os.path.exists(template_path):
          raise HTTPException(status_code=500, detail=f"Template file not found on server: {template_path}")
 
     try:
-        pdf_stream = generate_pdf_bytes(data_item, template_path)
+        pdf_stream = generate_pdf_bytes(pdf_data, template_path)
         
         # Return as a streaming response
         return StreamingResponse(
             pdf_stream, 
             media_type="application/pdf",
-            headers={"Content-Disposition": f"attachment; filename=cotizacion_{data_item.get('folio', 'generated')}.pdf"}
+            headers={"Content-Disposition": f"attachment; filename=cotizacion_{pdf_data.get('folio', 'generated')}.pdf"}
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
