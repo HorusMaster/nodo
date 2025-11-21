@@ -1,0 +1,1 @@
+Nodo para en  base a una plantilla generar  informacion y cotizaciones
