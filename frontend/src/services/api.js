@@ -1,4 +1,4 @@
-const N8N_WEBHOOK_URL = "https://n8n.redinmex.com/webhook-test/86ce68b9-267c-4d46-b4c7-6651bffc116e";
+const N8N_WEBHOOK_URL = import.meta.env.VITE_N8N_WEBHOOK_URL || "https://n8n.redinmex.com/webhook-test/86ce68b9-267c-4d46-b4c7-6651bffc116e";
 
 export const uploadInvoice = async (file) => {
   const formData = new FormData();
@@ -26,7 +26,7 @@ export const uploadInvoice = async (file) => {
 export const getFiles = async () => {
   // Simulating a delay
   await new Promise((resolve) => setTimeout(resolve, 500));
-  
+
   // Mock data structure: Client -> Folio -> Files
   return [
     {
