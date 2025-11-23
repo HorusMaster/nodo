@@ -22,10 +22,13 @@ function App() {
     setIsDragging(false);
 
     const droppedFiles = Array.from(e.dataTransfer.files);
-    if (droppedFiles.length > 0 && droppedFiles[0].type === 'application/pdf') {
-      await processUpload(droppedFiles[0]);
-    } else {
-      alert("Please upload a PDF file.");
+    if (droppedFiles.length > 0) {
+      const file = droppedFiles[0];
+      if (file.type === 'application/pdf' || file.type === 'text/xml' || file.type === 'application/xml') {
+        await processUpload(file);
+      } else {
+        alert("Please upload a PDF or XML file.");
+      }
     }
   };
 
@@ -88,7 +91,7 @@ function App() {
             type="file"
             id="fileInput"
             className="hidden"
-            accept=".pdf"
+            accept=".pdf,.xml"
             onChange={handleFileSelect}
           />
 
@@ -105,7 +108,7 @@ function App() {
             </div>
             <div className="space-y-2">
               <p className="text-xl font-semibold text-gray-200">
-                {isUploading ? "Processing..." : "Drop your PDF here"}
+                {isUploading ? "Processing..." : "Drop your PDF or XML here"}
               </p>
               <p className="text-sm text-gray-500">or click to browse</p>
             </div>
