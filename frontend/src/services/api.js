@@ -4,6 +4,13 @@ export const uploadInvoice = async (file) => {
   const formData = new FormData();
   formData.append("file", file);
 
+  // Determine file type based on MIME type or extension
+  let fileType = "pdf";
+  if (file.type === "text/xml" || file.type === "application/xml" || file.name.endsWith(".xml")) {
+    fileType = "xml";
+  }
+  formData.append("fileType", fileType);
+
   try {
     const response = await fetch(N8N_WEBHOOK_URL, {
       method: "POST",
