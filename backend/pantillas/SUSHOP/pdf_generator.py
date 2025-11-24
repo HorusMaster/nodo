@@ -86,14 +86,22 @@ def create_overlay(data_item, coords):
 
     # Table Columns
     # Based on debug: Cantidad (63.225, 424.3), Descripción (201.08, 424.3), Precio (341.1, 424.3), Importe (426.52, 424.3)
-    row_y_offset = -40 
     
-    # Use 'Precio' instead of 'Precio Unitario' as keyword
-    
-    draw_relative("Cantidad", data_item.get('cantidad', ''), offset_x=0, offset_y=row_y_offset)
-    draw_relative("Descripción", data_item.get('producto', ''), offset_x=0, offset_y=row_y_offset) 
-    draw_relative("Precio", f"${data_item.get('precio_unitario', '')}", offset_x=0, offset_y=row_y_offset)
-    draw_relative("Importe", f"${data_item.get('importe', '')}", offset_x=0, offset_y=row_y_offset)
+    products = data_item.get('productos', [])
+    # Fallback for single item structure if 'productos' is missing or empty
+    if not products and 'producto' in data_item:
+        products = [data_item]
+
+    current_y_offset = -40
+    line_height = 20
+
+    for item in products:
+        draw_relative("Cantidad", item.get('cantidad', ''), offset_x=0, offset_y=current_y_offset)
+        draw_relative("Descripción", item.get('producto', ''), offset_x=0, offset_y=current_y_offset) 
+        draw_relative("Precio", f"${item.get('precio_unitario', '')}", offset_x=0, offset_y=current_y_offset)
+        draw_relative("Importe", f"${item.get('importe', '')}", offset_x=0, offset_y=current_y_offset)
+        
+        current_y_offset -= line_height
 
     # Totals
     draw_relative("Subtotal", f"${data_item.get('subtotal', '')}", offset_x=60)

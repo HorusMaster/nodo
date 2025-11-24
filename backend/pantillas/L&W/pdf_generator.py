@@ -54,20 +54,28 @@ def create_overlay(data_item, coords):
     draw_relative("Cliente", data_item.get('receptor', ''), offset_x=40, offset_y=0) 
 
     # Table Columns
-    row_y_offset = -20 
-    
-    draw_relative("Cantidad", data_item.get('cantidad', ''), offset_x=0, offset_y=row_y_offset)
-    
-    draw_relative("Descripción", data_item.get('producto', ''), offset_x=0, offset_y=row_y_offset) 
-    draw_relative("Precio Unitario", f"${data_item.get('precio_unitario', '')}", offset_x=0, offset_y=row_y_offset)
-    
-    # Importe fallback: if not found or 0, place relative to Precio
-    if "Importe" in coords and coords["Importe"][0] > 10:
-        draw_relative("Importe", f"${data_item.get('importe', '')}", offset_x=0, offset_y=row_y_offset)
-    elif "Precio Unitario" in coords:
-        # Estimate Importe is ~100 units to the right of Precio
-        precio_x, precio_y = coords["Precio Unitario"]
-        can.drawString(precio_x + 100, precio_y + row_y_offset, f"${data_item.get('importe', '')}")
+    products = data_item.get('productos', [])
+    if not products and 'producto' in data_item:
+        products = [data_item]
+
+    current_y_offset = -20
+    line_height = 20
+
+    for item in products:
+        draw_relative("Cantidad", item.get('cantidad', ''), offset_x=0, offset_y=current_y_offset)
+        
+        draw_relative("Descripción", item.get('producto', ''), offset_x=0, offset_y=current_y_offset) 
+        draw_relative("Precio Unitario", f"${item.get('precio_unitario', '')}", offset_x=0, offset_y=current_y_offset)
+        
+        # Importe fallback: if not found or 0, place relative to Precio
+        if "Importe" in coords and coords["Importe"][0] > 10:
+            draw_relative("Importe", f"${item.get('importe', '')}", offset_x=0, offset_y=current_y_offset)
+        elif "Precio Unitario" in coords:
+            # Estimate Importe is ~100 units to the right of Precio
+            precio_x, precio_y = coords["Precio Unitario"]
+            can.drawString(precio_x + 100, precio_y + current_y_offset, f"${item.get('importe', '')}")
+            
+        current_y_offset -= line_height
 
     # Totals
     draw_relative("Subtotal", f"${data_item.get('subtotal', '')}", offset_x=60)
