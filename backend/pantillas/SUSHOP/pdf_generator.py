@@ -86,7 +86,7 @@ def create_overlay(data_item, coords):
 
     # Table Columns
     # Based on debug: Cantidad (63.225, 424.3), Descripción (201.08, 424.3), Precio (341.1, 424.3), Importe (426.52, 424.3)
-    row_y_offset = -20 
+    row_y_offset = -40 
     
     # Use 'Precio' instead of 'Precio Unitario' as keyword
     
