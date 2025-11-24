@@ -60,7 +60,7 @@ async def generate_pdf(payload: list[dict] | dict):
     # Template selection logic
     template_map = {
         "LEARN&WELL22": "pantillas/L&W COTIZACION.pdf",
-        "SUSHOP": "pantillas/SUSHOP/SUSHSHOP COTIZACION.pdf"
+        "SUSHSHOP DEL CENTRO": "pantillas/SUSHOP/SUSHSHOP COTIZACION.pdf"
     }
     
     template_path = template_map.get(emisor)
