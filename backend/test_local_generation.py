@@ -28,35 +28,21 @@ lw_gen = import_module_from_path("lw_gen", os.path.join(base_dir, "pantillas", "
 
 data = [
   {
-    "folio": "2318",
-    "emisor": "SUSHSHOP DEL CENTRO",
-    "receptor": "ALBERTO RAMIREZ TORRES",
-    "rfc_receptor": "RATX681027I98",
-    "fecha/hora_emision": "2025-10-24T17:23:35",
-    "subtotal": 4525.85,
-    "IVA": 724.14,
-    "total_factura": 5249.99,
+    "folio": "A-355",
+    "emisor": "LEARN&WELL22",
+    "receptor": "MANTENIMIENTO INDUSTRIAL Y COMERCIAL XICO",
+    "rfc_receptor": "MIC191114530",
+    "fecha/hora_emision": "2025-10-07T11:57:01",
+    "subtotal": 14175,
+    "IVA": 2268,
+    "total_factura": 16443,
     "productos": [
       {
-        "producto": "VALVULA DE ESFERA DE 3 PULGADAS",
-        "cantidad": 1,
-        "unidad": "H87",
-        "precio_unitario": 2758.62,
-        "importe": 2758.62
-      },
-      {
-        "producto": "CONEXIÓN RAPIDA C200",
-        "cantidad": 1,
-        "unidad": "H87",
-        "precio_unitario": 387.93,
-        "importe": 387.93
-      },
-      {
-        "producto": "CONEXIONES RAPIDAS F300",
-        "cantidad": 2,
-        "unidad": "H87",
-        "precio_unitario": 1379.3,
-        "importe": 1379.3
+        "producto": "LOTE DE TELAS VARIAS",
+        "cantidad": 1.5,
+        "unidad": "E48",
+        "precio_unitario": 9450,
+        "importe": 14175
       }
     ]
   }

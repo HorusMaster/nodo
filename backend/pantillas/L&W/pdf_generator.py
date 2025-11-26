@@ -45,13 +45,23 @@ def create_overlay(data_item, coords):
     
     # Header Info
     draw_relative("Folio", data_item.get('folio', ''), offset_x=35) 
-    draw_relative("Fecha", data_item.get('fecha/hora_emision', ''), offset_x=35)
-    
-    # Emisor: Search for "expedición" to avoid newline issues
-    draw_relative("expedición", data_item.get('emisor', ''), offset_x=0, offset_y=20)
-
+    draw_relative("Fecha:", data_item.get('fecha/hora_emision', ''), offset_x=35, offset_y=-2)
+    draw_relative("Cliente", data_item.get('receptor', ''), offset_x=10, offset_y=-30)
+  
     # Receptor -> "Cliente"
-    draw_relative("Cliente", data_item.get('receptor', ''), offset_x=40, offset_y=0) 
+    # Fallback to "Nombre / razón social" if "Cliente" is not mapped, or just use "Nombre / razón social" directly
+    #if "Nombre / razón social" in coords:
+    #    draw_relative("Nombre / razón social: ", data_item.get('receptor', ''), offset_x=380, offset_y=-25)
+    #    # Draw RFC relative to Name
+    #    name_x, name_y = coords["Nombre / razón social"]
+    #    can.drawString(name_x + 380, name_y - 45, data_item.get('rfc_receptor', ''))
+    #elif "Cliente" in coords:
+    #    draw_relative("Cliente", data_item.get('receptor', ''), offset_x=40, offset_y=-50)
+    #    draw_relative("RFC", data_item.get('rfc_receptor', ''), offset_x=350, offset_y=-20)
+    #else:
+    #    # Absolute fallback if neither found
+    #    can.drawString(100, 650, data_item.get('receptor', ''))
+    #    can.drawString(100, 635, data_item.get('rfc_receptor', '')) 
 
     # Table Columns
     products = data_item.get('productos', [])
@@ -61,26 +71,48 @@ def create_overlay(data_item, coords):
     current_y_offset = -20
     line_height = 20
 
+    # Fallback coordinates if keywords are not found (e.g. images in PDF)
+    # Cantidad: x=50, Descripción: x=120, Precio Unitario: x=350, Importe: x=480
+    # Y start approx 550 (need to adjust based on template)
+    
+    # We use the first item to establish the Y start if we have to use absolute coordinates
+    # But draw_relative relies on a key.
+    
+    # Strategy: define base coordinates for columns
+    col_coords = {
+        "Cantidad": coords.get("Cantidad", (72, 550)), # Default approx
+        "Descripción": coords.get("Descripción", (140, 550)),
+        "Precio Unitario": coords.get("Precio Unitario", (380, 550)),
+        "Importe": coords.get("Importe", (480, 550))
+    }
+    
+    # Fix for Price Y alignment: If Importe is found, use its Y for Price default
+    if "Importe" in coords:
+        col_coords["Precio Unitario"] = (col_coords["Precio Unitario"][0], coords["Importe"][1])
+
+    # Override coords with defaults if missing
+    for key, val in col_coords.items():
+        if key not in coords:
+            coords[key] = val
+
     for item in products:
-        draw_relative("Cantidad", item.get('cantidad', ''), offset_x=0, offset_y=current_y_offset)
+        # Now we can safely use draw_relative because we injected the keys into coords
+        # We might need to adjust the offsets because draw_relative adds the coord to the offset.
+        # If we used absolute defaults, we want offset 0 (or small adjustments).
         
+        # Note: draw_relative does: can.drawString(x + offset_x, y + offset_y, ...)
+        
+        draw_relative("Cantidad", item.get('cantidad', ''), offset_x=0, offset_y=current_y_offset)
         draw_relative("Descripción", item.get('producto', ''), offset_x=0, offset_y=current_y_offset) 
         draw_relative("Precio Unitario", f"${item.get('precio_unitario', '')}", offset_x=0, offset_y=current_y_offset)
-        
-        # Importe fallback: if not found or 0, place relative to Precio
-        if "Importe" in coords and coords["Importe"][0] > 10:
-            draw_relative("Importe", f"${item.get('importe', '')}", offset_x=0, offset_y=current_y_offset)
-        elif "Precio Unitario" in coords:
-            # Estimate Importe is ~100 units to the right of Precio
-            precio_x, precio_y = coords["Precio Unitario"]
-            can.drawString(precio_x + 100, precio_y + current_y_offset, f"${item.get('importe', '')}")
+        draw_relative("Importe", f"${item.get('importe', '')}", offset_x=0, offset_y=current_y_offset)
             
         current_y_offset -= line_height
 
     # Totals
-    draw_relative("Subtotal", f"${data_item.get('subtotal', '')}", offset_x=60)
-    draw_relative("Iva", f"${data_item.get('IVA', '')}", offset_x=60) # Note 'Iva' in PDF vs 'IVA' in JSON key
-    draw_relative("Total", f"${data_item.get('total_factura', '')}", offset_x=60)
+    draw_relative("Subtotal", f"${data_item.get('subtotal', '')}", offset_x=80)
+    draw_relative("Iva", f"${data_item.get('IVA', '')}", offset_x=60)
+    draw_relative("Total", f"${data_item.get('total_factura', '')}", offset_x=80, offset_y=-35)
 
     can.save()
     packet.seek(0)
@@ -92,7 +124,7 @@ def generate_pdf_bytes(data_item, template_path):
     """
     # Keywords to search for in the PDF
     search_keywords = [
-        "Folio", "Fecha", "expedición",
+        "Folio", "Fecha:",
         "Cliente", 
         "Cantidad", "Descripción", "Precio Unitario", "Importe",
         "Subtotal", "Iva", "Total"
@@ -112,3 +144,4 @@ def generate_pdf_bytes(data_item, template_path):
     output.write(output_stream)
     output_stream.seek(0)
     return output_stream
+
