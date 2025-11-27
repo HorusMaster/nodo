@@ -7,6 +7,7 @@ function App() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState(null); // 'success' | 'error'
   const [files, setFiles] = useState([]);
+  const [isTestMode, setIsTestMode] = useState(false); // Toggle between test and production
 
   const handleDragOver = (e) => {
     e.preventDefault();
@@ -48,8 +49,8 @@ function App() {
     setUploadStatus(null);
 
     try {
-      // Use the new bulk upload function
-      const result = await uploadMultipleFiles(validFiles);
+      // Use the new bulk upload function (test or production)
+      const result = await uploadMultipleFiles(validFiles, isTestMode);
 
       console.log("Upload result:", result);
       setUploadStatus('success');
@@ -78,6 +79,28 @@ function App() {
           <p className="text-gray-400 text-lg">
             Upload your invoices to automatically generate quotations.
           </p>
+
+          {/* Test Mode Toggle */}
+          <div className="flex items-center justify-center gap-3 mt-6">
+            <span className={`text-sm font-medium ${!isTestMode ? 'text-green-400' : 'text-gray-500'}`}>
+              PRODUCCIÓN
+            </span>
+            <button
+              onClick={() => setIsTestMode(!isTestMode)}
+              className={`
+                relative w-16 h-8 rounded-full transition-all duration-300
+                ${isTestMode ? 'bg-yellow-500' : 'bg-green-500'}
+              `}
+            >
+              <div className={`
+                absolute top-1 w-6 h-6 bg-white rounded-full shadow-lg transition-all duration-300
+                ${isTestMode ? 'left-9' : 'left-1'}
+              `} />
+            </button>
+            <span className={`text-sm font-medium ${isTestMode ? 'text-yellow-400' : 'text-gray-500'}`}>
+              TEST
+            </span>
+          </div>
         </header>
 
         {/* Upload Zone */}

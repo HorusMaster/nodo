@@ -124,6 +124,39 @@ async def upload_multiple_files(files: list[UploadFile] = File(...)):
              
         return {"status": "success", "n8n_response": response.text, "files_sent": len(files_to_send)}
         
+     except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/upload_multiple_files_test")
+async def upload_multiple_files_test(files: list[UploadFile] = File(...)):
+    """
+    TEST MODE: Receives multiple files and forwards them to the n8n TEST webhook.
+    Use this endpoint while editing your workflow in n8n.
+    """
+    n8n_test_url = "https://n8n.redinmex.com/webhook-test/86ce68b9-267c-4d46-b4c7-6651bffc116e"
+    
+    files_to_send = []
+    
+    try:
+        # Collect all files first
+        for file in files:
+            # Read file content
+            content = await file.read()
+            
+            # Add to the list with field name 'file'
+            files_to_send.append(('file', (file.filename, content, file.content_type)))
+            
+            # Close the file
+            await file.close()
+        
+        # Send all files in a single request to n8n TEST webhook
+        response = requests.post(n8n_test_url, files=files_to_send)
+        
+        if response.status_code != 200:
+            raise HTTPException(status_code=502, detail=f"n8n TEST returned status {response.status_code}: {response.text}")
+             
+        return {"status": "success", "mode": "TEST", "n8n_response": response.text, "files_sent": len(files_to_send)}
+        
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

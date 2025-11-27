@@ -1,11 +1,9 @@
-const BACKEND_URL = "http://localhost:8000/upload_multiple_files";
-
-export const uploadInvoice = async (file) => {
+export const uploadInvoice = async (file, isTestMode = false) => {
   // Use the same backend endpoint for single file uploads
-  return uploadMultipleFiles([file]);
+  return uploadMultipleFiles([file], isTestMode);
 };
 
-export const uploadMultipleFiles = async (files) => {
+export const uploadMultipleFiles = async (files, isTestMode = false) => {
   const formData = new FormData();
 
   // Append all files with the same key 'files'
@@ -13,8 +11,9 @@ export const uploadMultipleFiles = async (files) => {
     formData.append("files", file);
   });
 
-  // Backend URL (assuming localhost:8000 based on context)
-  const BACKEND_URL = "http://localhost:8000/upload_multiple_files";
+  // Choose endpoint based on test mode
+  const endpoint = isTestMode ? "upload_multiple_files_test" : "upload_multiple_files";
+  const BACKEND_URL = `http://localhost:8000/${endpoint}`;
 
   try {
     const response = await fetch(BACKEND_URL, {
