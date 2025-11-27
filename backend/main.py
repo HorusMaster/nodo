@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException, UploadFile, File
+from fastapi.middleware.cors import CORSMiddleware
 import requests
 from pydantic import BaseModel
 from fastapi.responses import StreamingResponse
@@ -6,6 +7,15 @@ import os
 from pdf_generator import generate_pdf_bytes
 
 app = FastAPI()
+
+# Configure CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # En producción, especifica los dominios permitidos
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 class ProductItem(BaseModel):
     producto: str
