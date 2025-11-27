@@ -102,31 +102,27 @@ async def upload_multiple_files(files: list[UploadFile] = File(...)):
     """
     n8n_url = "https://n8n.redinmex.com/webhook/86ce68b9-267c-4d46-b4c7-6651bffc116e"
     
-    results = []
+    files_to_send = []
     
     try:
+        # Collect all files first
         for file in files:
             # Read file content
             content = await file.read()
             
-            # Send each file individually
-            file_to_send = [('files', (file.filename, content, file.content_type))]
-            
-            response = requests.post(n8n_url, files=file_to_send)
-            
-            if response.status_code != 200:
-                raise HTTPException(status_code=502, detail=f"n8n returned status {response.status_code} for {file.filename}: {response.text}")
-            
-            results.append({
-                "filename": file.filename,
-                "status": "success",
-                "n8n_response": response.text
-            })
+            # Add to the list with field name 'file'
+            files_to_send.append(('file', (file.filename, content, file.content_type)))
             
             # Close the file
             await file.close()
+        
+        # Send all files in a single request to n8n
+        response = requests.post(n8n_url, files=files_to_send)
+        
+        if response.status_code != 200:
+            raise HTTPException(status_code=502, detail=f"n8n returned status {response.status_code}: {response.text}")
              
-        return {"status": "success", "results": results}
+        return {"status": "success", "n8n_response": response.text, "files_sent": len(files_to_send)}
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
