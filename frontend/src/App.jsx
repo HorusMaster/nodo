@@ -23,27 +23,38 @@ function App() {
 
     const droppedFiles = Array.from(e.dataTransfer.files);
     if (droppedFiles.length > 0) {
-      const file = droppedFiles[0];
-      if (file.type === 'application/pdf' || file.type === 'text/xml' || file.type === 'application/xml') {
-        await processUpload(file);
-      } else {
-        alert("Please upload a PDF or XML file.");
-      }
+      await handleUploadFiles(droppedFiles);
     }
   };
 
   const handleFileSelect = async (e) => {
     if (e.target.files && e.target.files.length > 0) {
-      await processUpload(e.target.files[0]);
+      const selectedFiles = Array.from(e.target.files);
+      await handleUploadFiles(selectedFiles);
     }
   };
 
-  const processUpload = async (file) => {
+  const handleUploadFiles = async (filesToUpload) => {
+    const validFiles = filesToUpload.filter(file =>
+      file.type === 'application/pdf' || file.type === 'text/xml' || file.type === 'application/xml'
+    );
+
+    if (validFiles.length === 0) {
+      alert("Please upload PDF or XML files.");
+      return;
+    }
+
     setIsUploading(true);
     setUploadStatus(null);
+
     try {
-      const result = await uploadInvoice(file);
-      console.log("Upload result:", result);
+      const results = [];
+      for (const file of validFiles) {
+        const result = await uploadInvoice(file);
+        results.push(result);
+      }
+
+      console.log("Upload results:", results);
       setUploadStatus('success');
 
       // Refresh file list (mocked for now)
@@ -92,6 +103,7 @@ function App() {
             id="fileInput"
             className="hidden"
             accept=".pdf,.xml"
+            multiple
             onChange={handleFileSelect}
           />
 
@@ -108,7 +120,7 @@ function App() {
             </div>
             <div className="space-y-2">
               <p className="text-xl font-semibold text-gray-200">
-                {isUploading ? "Processing..." : "Drop your PDF or XML here"}
+                {isUploading ? "Processing..." : "Drop your files here"}
               </p>
               <p className="text-sm text-gray-500">or click to browse</p>
             </div>
