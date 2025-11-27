@@ -88,32 +88,38 @@ async def generate_pdf(payload: list[dict] | dict):
 async def upload_multiple_files(files: list[UploadFile] = File(...)):
     """
     Receives multiple files and forwards them to the configured n8n webhook.
+    Sends one request per file since the webhook doesn't support multiple files.
     """
     n8n_url = "https://n8n.redinmex.com/webhook/86ce68b9-267c-4d46-b4c7-6651bffc116e"
     
-    files_to_send = []
+    results = []
     
     try:
         for file in files:
             # Read file content
             content = await file.read()
-            # Prepare for requests.post (filename, content, content_type)
-            files_to_send.append(('files', (file.filename, content, file.content_type)))
-        
-        # Send to n8n
-        response = requests.post(n8n_url, files=files_to_send)
-        
-        if response.status_code != 200:
-             raise HTTPException(status_code=502, detail=f"n8n returned status {response.status_code}: {response.text}")
+            
+            # Send each file individually
+            file_to_send = [('files', (file.filename, content, file.content_type))]
+            
+            response = requests.post(n8n_url, files=file_to_send)
+            
+            if response.status_code != 200:
+                raise HTTPException(status_code=502, detail=f"n8n returned status {response.status_code} for {file.filename}: {response.text}")
+            
+            results.append({
+                "filename": file.filename,
+                "status": "success",
+                "n8n_response": response.text
+            })
+            
+            # Close the file
+            await file.close()
              
-        return {"status": "success", "n8n_response": response.text}
+        return {"status": "success", "results": results}
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    finally:
-        # Close any resources if needed (UploadFile handles this mostly, but good practice)
-        for file in files:
-            await file.close()
 
 @app.get("/health")
 def health_check():
