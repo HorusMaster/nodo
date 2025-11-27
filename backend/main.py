@@ -1,4 +1,5 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, UploadFile, File
+import requests
 from pydantic import BaseModel
 from fastapi.responses import StreamingResponse
 import os
@@ -82,6 +83,37 @@ async def generate_pdf(payload: list[dict] | dict):
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/upload_multiple_files")
+async def upload_multiple_files(files: list[UploadFile] = File(...)):
+    """
+    Receives multiple files and forwards them to the configured n8n webhook.
+    """
+    n8n_url = "https://n8n.redinmex.com/webhook/86ce68b9-267c-4d46-b4c7-6651bffc116e"
+    
+    files_to_send = []
+    
+    try:
+        for file in files:
+            # Read file content
+            content = await file.read()
+            # Prepare for requests.post (filename, content, content_type)
+            files_to_send.append(('files', (file.filename, content, file.content_type)))
+        
+        # Send to n8n
+        response = requests.post(n8n_url, files=files_to_send)
+        
+        if response.status_code != 200:
+             raise HTTPException(status_code=502, detail=f"n8n returned status {response.status_code}: {response.text}")
+             
+        return {"status": "success", "n8n_response": response.text}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        # Close any resources if needed (UploadFile handles this mostly, but good practice)
+        for file in files:
+            await file.close()
 
 @app.get("/health")
 def health_check():

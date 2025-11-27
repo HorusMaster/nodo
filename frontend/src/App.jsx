@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Upload, FileText, Folder, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
-import { uploadInvoice, getFiles } from './services/api';
+import { uploadInvoice, getFiles, uploadMultipleFiles } from './services/api';
 
 function App() {
   const [isDragging, setIsDragging] = useState(false);
@@ -48,13 +48,10 @@ function App() {
     setUploadStatus(null);
 
     try {
-      const results = [];
-      for (const file of validFiles) {
-        const result = await uploadInvoice(file);
-        results.push(result);
-      }
+      // Use the new bulk upload function
+      const result = await uploadMultipleFiles(validFiles);
 
-      console.log("Upload results:", results);
+      console.log("Upload result:", result);
       setUploadStatus('success');
 
       // Refresh file list (mocked for now)
@@ -120,7 +117,7 @@ function App() {
             </div>
             <div className="space-y-2">
               <p className="text-xl font-semibold text-gray-200">
-                {isUploading ? "Processing..." : "Drop your files here"}
+                {isUploading ? "Processing..." : "Subir Archivos Multiples"}
               </p>
               <p className="text-sm text-gray-500">or click to browse</p>
             </div>
