@@ -124,7 +124,8 @@ async def upload_multiple_files(files: list[UploadFile] = File(...)):
              
         return {"status": "success", "n8n_response": response.text, "files_sent": len(files_to_send)}
         
-     except Exception as e:
+        
+    except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/upload_multiple_files_test")
