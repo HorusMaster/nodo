@@ -15,20 +15,45 @@ export const uploadMultipleFiles = async (files, isTestMode = false) => {
   const endpoint = isTestMode ? "upload_multiple_files_test" : "upload_multiple_files";
   const BACKEND_URL = `http://localhost:8000/${endpoint}`;
 
+  // Create an AbortController for timeout
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
   try {
+    console.log(`Uploading ${files.length} files to ${BACKEND_URL}...`);
+
     const response = await fetch(BACKEND_URL, {
       method: "POST",
       body: formData,
+      signal: controller.signal,
     });
 
+    clearTimeout(timeoutId);
+
     if (!response.ok) {
-      throw new Error(`Upload failed: ${response.statusText}`);
+      const errorText = await response.text();
+      console.error(`Server error (${response.status}):`, errorText);
+      throw new Error(`Upload failed: ${response.status} - ${errorText || response.statusText}`);
     }
 
-    return await response.json();
+    const result = await response.json();
+    console.log("Upload successful:", result);
+    return result;
+
   } catch (error) {
-    console.error("Error uploading multiple files:", error);
-    throw error;
+    clearTimeout(timeoutId);
+
+    // Provide more specific error messages
+    if (error.name === 'AbortError') {
+      console.error("Upload timeout after 30 seconds");
+      throw new Error("Upload timeout - the server took too long to respond");
+    } else if (error instanceof TypeError && error.message === 'Failed to fetch') {
+      console.error("Network error - cannot connect to backend server");
+      throw new Error("Cannot connect to server. Please ensure the backend is running on http://localhost:8000");
+    } else {
+      console.error("Error uploading multiple files:", error);
+      throw error;
+    }
   }
 };
 

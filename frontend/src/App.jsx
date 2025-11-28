@@ -6,6 +6,7 @@ function App() {
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState(null); // 'success' | 'error'
+  const [errorMessage, setErrorMessage] = useState('');
   const [files, setFiles] = useState([]);
   const [isTestMode, setIsTestMode] = useState(false); // Toggle between test and production
 
@@ -47,6 +48,7 @@ function App() {
 
     setIsUploading(true);
     setUploadStatus(null);
+    setErrorMessage('');
 
     try {
       // Use the new bulk upload function (test or production)
@@ -62,6 +64,7 @@ function App() {
     } catch (error) {
       console.error(error);
       setUploadStatus('error');
+      setErrorMessage(error.message || 'Unknown error occurred');
     } finally {
       setIsUploading(false);
     }
@@ -81,23 +84,23 @@ function App() {
           </p>
 
           {/* Test Mode Toggle */}
-          <div className="flex items-center justify-center gap-3 mt-6">
-            <span className={`text-sm font-medium ${!isTestMode ? 'text-green-400' : 'text-gray-500'}`}>
+          <div className="flex items-center justify-center gap-5 mt-8">
+            <span className={`text-lg font-bold ${!isTestMode ? 'text-green-400' : 'text-gray-500'}`}>
               PRODUCCIÓN
             </span>
             <button
               onClick={() => setIsTestMode(!isTestMode)}
               className={`
-                relative w-16 h-8 rounded-full transition-all duration-300
-                ${isTestMode ? 'bg-yellow-500' : 'bg-green-500'}
+                relative w-24 h-12 rounded-full transition-all duration-300 shadow-xl
+                ${isTestMode ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-green-500 hover:bg-green-600'}
               `}
             >
               <div className={`
-                absolute top-1 w-6 h-6 bg-white rounded-full shadow-lg transition-all duration-300
-                ${isTestMode ? 'left-9' : 'left-1'}
+                absolute top-1.5 w-9 h-9 bg-white rounded-full shadow-lg transition-all duration-300
+                ${isTestMode ? 'left-[54px]' : 'left-1.5'}
               `} />
             </button>
-            <span className={`text-sm font-medium ${isTestMode ? 'text-yellow-400' : 'text-gray-500'}`}>
+            <span className={`text-lg font-bold ${isTestMode ? 'text-yellow-400' : 'text-gray-500'}`}>
               TEST
             </span>
           </div>
@@ -154,9 +157,14 @@ function App() {
             </div>
           )}
           {uploadStatus === 'error' && (
-            <div className="absolute top-4 right-4 flex items-center space-x-2 text-red-400 bg-red-400/10 px-4 py-2 rounded-full animate-in fade-in slide-in-from-bottom-2">
-              <AlertCircle className="w-4 h-4" />
-              <span className="text-sm font-medium">Upload Failed</span>
+            <div className="absolute top-4 right-4 flex flex-col space-y-1 text-red-400 bg-red-400/10 px-4 py-2 rounded-lg animate-in fade-in slide-in-from-bottom-2 max-w-md">
+              <div className="flex items-center space-x-2">
+                <AlertCircle className="w-4 h-4" />
+                <span className="text-sm font-medium">Upload Failed</span>
+              </div>
+              {errorMessage && (
+                <span className="text-xs text-red-300 pl-6">{errorMessage}</span>
+              )}
             </div>
           )}
         </div>
