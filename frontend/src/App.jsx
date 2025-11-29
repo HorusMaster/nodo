@@ -96,7 +96,7 @@ function App() {
                 checked={isTestMode}
                 onChange={() => setIsTestMode(!isTestMode)}
               />
-              <div className="w-16 h-8 bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-yellow-500 border-2 border-white/50 hover:border-white transition-colors"></div>
+              <div className="w-48 h-24 bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[12px] after:left-[12px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-18 after:w-18 after:transition-all peer-checked:bg-yellow-500 border-2 border-white/50 hover:border-white transition-colors"></div>
             </label>
 
             <span className={`text-base font-bold tracking-wider ${isTestMode ? 'text-yellow-400' : 'text-gray-500'}`}>
