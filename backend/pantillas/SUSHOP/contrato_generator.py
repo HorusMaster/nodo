@@ -89,6 +89,8 @@ def replace_text_in_table(table, replacements):
 def generate_contract_docx(data_item, template_path):
     """
     Genera un contrato DOCX rellenado con los datos proporcionados.
+    Escanea la plantilla en busca de variables {{variable}} y las rellena
+    con los datos de n8n o 'XXXXXXXXXX' si no existen.
     
     Args:
         data_item (dict): Datos del contrato desde n8n
@@ -106,54 +108,58 @@ def generate_contract_docx(data_item, template_path):
     # Cargar el documento
     doc = Document(str(template_path))
     
-    # Preparar los reemplazos
-    # Las variables en la plantilla deben estar en formato {{variable}}
-    replacements = {
-        '{{receptor}}': data_item.get('receptor', 'XXXXXXXXXX'),
-        '{{representante_receptor}}': data_item.get('representante_receptor', 'XXXXXXXXXX'),
-        '{{banco_receptor}}': data_item.get('banco_receptor', 'XXXXXXXXXX'),
-        '{{cuenta_receptor}}': data_item.get('cuenta_receptor', 'XXXXXXXXXX'),
-        '{{clave_receptor}}': data_item.get('clave_receptor', 'XXXXXXXXXX'),
-    }
+    # 1. Pre-procesar datos (Contexto)
+    context = data_item.copy()
     
-    # Manejar fecha y hora
-    fecha_str = data_item.get('fecha')
+    # Manejar fecha y hora derivadas
+    fecha_str = context.get('fecha')
     if not fecha_str:
-        fecha_str = data_item.get('fecha_hora_emision')
+        fecha_str = context.get('fecha_hora_emision')
     if not fecha_str:
-        fecha_str = data_item.get('fecha/hora_emision')
+        fecha_str = context.get('fecha/hora_emision')
     
     if fecha_str:
         try:
-            # Normalizar separador T a espacio para manejar formato ISO
+            # Normalizar separador T a espacio
             fecha_val = str(fecha_str).replace('T', ' ')
-            
-            # Agregar la fecha completa para la variable compuesta
-            replacements['{{fecha/hora_emision}}'] = fecha_val
+            context['fecha/hora_emision'] = fecha_val
             
             if ' ' in fecha_val:
                 parts = fecha_val.split(' ')
-                replacements['{{fecha}}'] = parts[0]
-                replacements['{{hora_emision}}'] = parts[1] if len(parts) > 1 else 'XXXXXXXXXX'
+                if 'fecha' not in context: context['fecha'] = parts[0]
+                if 'hora_emision' not in context: context['hora_emision'] = parts[1]
             else:
-                replacements['{{fecha}}'] = fecha_val
-                replacements['{{hora_emision}}'] = 'XXXXXXXXXX'
+                if 'fecha' not in context: context['fecha'] = fecha_val
         except:
-            replacements['{{fecha}}'] = 'XXXXXXXXXX'
-            replacements['{{hora_emision}}'] = 'XXXXXXXXXX'
-            replacements['{{fecha/hora_emision}}'] = 'XXXXXXXXXX'
-    else:
-        replacements['{{fecha}}'] = 'XXXXXXXXXX'
-        replacements['{{hora_emision}}'] = 'XXXXXXXXXX'
-        replacements['{{fecha/hora_emision}}'] = 'XXXXXXXXXX'
+            pass
+
+    # 2. Escanear el documento para encontrar todas las variables {{key}}
+    found_keys = set()
     
-    # Sobrescribir con valores específicos si existen
-    if 'hora_emision' in data_item:
-        replacements['{{hora_emision}}'] = data_item['hora_emision']
+    def find_keys_in_text(text):
+        return set(re.findall(r'\{\{\s*(\w+)\s*\}\}', text))
+
+    for paragraph in doc.paragraphs:
+        found_keys.update(find_keys_in_text(paragraph.text))
     
+    for table in doc.tables:
+        for row in table.rows:
+            for cell in row.cells:
+                for paragraph in cell.paragraphs:
+                    found_keys.update(find_keys_in_text(paragraph.text))
+
+    # 3. Construir diccionario de reemplazos
+    replacements = {}
+    for key in found_keys:
+        # Obtener valor del contexto o usar default
+        val = context.get(key, 'XXXXXXXXXX')
+        # La función replace_text_in_paragraph espera claves con llaves {{key}}
+        replacements[f'{{{{{key}}}}}'] = val
+    
+    # 4. Ejecutar reemplazos
     # Reemplazar en todos los párrafos
     for paragraph in doc.paragraphs:
-        replace_text_in_paragraph(paragraph, replac     ements)
+        replace_text_in_paragraph(paragraph, replacements)
     
     # Reemplazar en todas las tablas
     for table in doc.tables:
