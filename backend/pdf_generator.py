@@ -24,8 +24,8 @@ def generate_pdf_bytes(data_item, template_path):
     if "SUSHOP" in template_path:
         generator_path = os.path.join(base_dir, "pantillas", "SUSHOP", "pdf_generator.py")
         module_name = "sushop_generator"
-    elif "L&W" in template_path:
-        generator_path = os.path.join(base_dir, "pantillas", "L&W", "pdf_generator.py")
+    elif "LW" in template_path:
+        generator_path = os.path.join(base_dir, "pantillas", "LW", "pdf_generator.py")
         module_name = "lw_generator"
     else:
         raise ValueError(f"Unknown template type for path: {template_path}")

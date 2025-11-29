@@ -90,7 +90,7 @@ async def generate_pdf(payload: list[dict] | dict):
     
     # Template selection logic
     template_map = {
-        "LEARN&WELL22": "pantillas/L&W/L&W COTIZACION.pdf",
+        "LEARN&WELL22": "pantillas/LW/LW COTIZACION.pdf",
         "SUSHSHOP DEL CENTRO": "pantillas/SUSHOP/SUSHSHOP COTIZACION.pdf"
     }
     
@@ -178,6 +178,48 @@ async def upload_multiple_files_test(files: list[UploadFile] = File(...)):
              
         return {"status": "success", "mode": "TEST", "n8n_response": response.text, "files_sent": len(files_to_send)}
         
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/generate-contract")
+async def generate_contract(payload: list[dict] | dict):
+    """
+    Receives a JSON payload (list or dict) and generates a DOCX contract.
+    Uses the LW CONTRATO.docx template.
+    """
+    # Import the contract generator
+    import sys
+    sys.path.insert(0, 'pantillas/LW')
+    from contrato_generator import generate_contract_docx
+    
+    # Handle list input (n8n often sends a list of items)
+    if isinstance(payload, list):
+        if not payload:
+            raise HTTPException(status_code=400, detail="Empty list provided")
+        raw_data = payload[0]
+    else:
+        raw_data = payload
+    
+    # Template path
+    template_path = "pantillas/LW/LW CONTRATO.docx"
+    
+    if not os.path.exists(template_path):
+        raise HTTPException(status_code=500, detail=f"Template file not found: {template_path}")
+    
+    try:
+        # Generate the contract
+        contract_stream = generate_contract_docx(raw_data, template_path)
+        
+        # Get receptor name for filename
+        receptor = raw_data.get('receptor', 'contrato')
+        filename = f"contrato_{receptor.replace(' ', '_')}.docx"
+        
+        # Return as a streaming response
+        return StreamingResponse(
+            contract_stream,
+            media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

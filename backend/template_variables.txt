@@ -1,0 +1,11 @@
+Variables in L&W CONTRATO.docx:
+==================================================
+  - banco_receptor
+  - clave_receptor
+  - cuenta_receptor
+  - fecha
+  - hora_emision
+  - receptor
+  - representante_receptor
+==================================================
+Total: 7
