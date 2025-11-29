@@ -153,7 +153,7 @@ def generate_contract_docx(data_item, template_path):
     
     # Reemplazar en todos los párrafos
     for paragraph in doc.paragraphs:
-        replace_text_in_paragraph(paragraph, replac     ements)
+        replace_text_in_paragraph(paragraph, replacements)
     
     # Reemplazar en todas las tablas
     for table in doc.tables:

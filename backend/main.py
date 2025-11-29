@@ -5,6 +5,7 @@ from pydantic import BaseModel
 from fastapi.responses import StreamingResponse
 import os
 from pdf_generator import generate_pdf_bytes
+from contract_generator import generate_contract_bytes
 import logging
 import time
 
@@ -53,6 +54,7 @@ class InvoiceData(BaseModel):
     IVA: float
     total_factura: float
     productos: list[ProductItem]
+    generate_contract: bool = False # New flag
 
     class Config:
         extra = "allow"
@@ -61,58 +63,101 @@ class InvoiceData(BaseModel):
 async def generate_pdf(payload: list[dict] | dict):
     """
     Receives a JSON payload (list or dict), selects a template based on 'emisor',
-    and returns a generated PDF.
+    and returns a generated PDF (and optionally a contract DOCX).
+    If multiple files are generated, returns a ZIP.
     """
     # Handle list input (n8n often sends a list of items)
+    items_to_process = []
     if isinstance(payload, list):
         if not payload:
             raise HTTPException(status_code=400, detail="Empty list provided")
-        raw_data = payload[0]
+        items_to_process = payload
     else:
-        raw_data = payload
+        items_to_process = [payload]
 
-    # Normalize keys if needed (e.g. "fecha/hora_emision" -> "fecha_hora_emision")
-    # For simplicity, we'll just work with the dict directly to pass to the generator
-    
-    emisor = raw_data.get("emisor")
-    if not emisor:
-        raise HTTPException(status_code=400, detail="Missing 'emisor' field")
+    generated_files = []
 
-    # Flatten data for the PDF generator
-    # The generator expects keys like 'producto', 'cantidad' at the top level.
-    # We will take the first product from the list.
-    pdf_data = raw_data.copy()
-    
-    productos = raw_data.get("productos", [])
-    if productos and isinstance(productos, list) and len(productos) > 0:
-        first_product = productos[0]
-        pdf_data.update(first_product) # Merge product fields into top level
-    
     # Template selection logic
     template_map = {
         "LEARN&WELL22": "pantillas/LW/LW COTIZACION.pdf",
         "SUSHSHOP DEL CENTRO": "pantillas/SUSHOP/SUSHSHOP COTIZACION.pdf"
     }
     
-    template_path = template_map.get(emisor)
-    
-    if not template_path:
-        raise HTTPException(status_code=404, detail=f"No template found for emisor: {emisor}")
-    
-    if not os.path.exists(template_path):
-         raise HTTPException(status_code=500, detail=f"Template file not found on server: {template_path}")
+    contract_template_map = {
+        "LEARN&WELL22": "pantillas/LW/LW CONTRATO.docx", # Assuming this exists or similar
+        "SUSHSHOP DEL CENTRO": "pantillas/SUSHOP/SUSHSHOP_CONTRATO.docx"
+    }
 
-    try:
-        pdf_stream = generate_pdf_bytes(pdf_data, template_path)
+    for raw_data in items_to_process:
+        emisor = raw_data.get("emisor")
+        if not emisor:
+            raise HTTPException(status_code=400, detail="Missing 'emisor' field in one of the items")
+
+        # Flatten data for the PDF generator
+        pdf_data = raw_data.copy()
         
-        # Return as a streaming response
+        productos = raw_data.get("productos", [])
+        if productos and isinstance(productos, list) and len(productos) > 0:
+            first_product = productos[0]
+            pdf_data.update(first_product) # Merge product fields into top level
+        
+        template_path = template_map.get(emisor)
+        
+        if not template_path:
+            raise HTTPException(status_code=404, detail=f"No template found for emisor: {emisor}")
+        
+        if not os.path.exists(template_path):
+            raise HTTPException(status_code=500, detail=f"Template file not found on server: {template_path}")
+
+        try:
+            # Generate PDF
+            pdf_stream = generate_pdf_bytes(pdf_data, template_path)
+            filename = f"cotizacion_{pdf_data.get('folio', 'generated')}.pdf"
+            generated_files.append((filename, pdf_stream))
+            
+            # Generate Contract if requested
+            if raw_data.get("generate_contract"):
+                contract_template = contract_template_map.get(emisor)
+                if contract_template and os.path.exists(contract_template):
+                    docx_stream = generate_contract_bytes(pdf_data, contract_template)
+                    contract_filename = f"contrato_{pdf_data.get('folio', 'generated')}.docx"
+                    generated_files.append((contract_filename, docx_stream))
+                else:
+                    # Log warning or ignore? For now ignore if template missing but maybe log
+                    print(f"Warning: Contract template not found for {emisor}")
+
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Error generating files for folio {pdf_data.get('folio')}: {str(e)}")
+
+    if not generated_files:
+         raise HTTPException(status_code=500, detail="No files were generated")
+
+    # If only one file, return as that type (backward compatibility for single PDF)
+    if len(generated_files) == 1:
+        filename, stream = generated_files[0]
+        media_type = "application/pdf" if filename.endswith(".pdf") else "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         return StreamingResponse(
-            pdf_stream, 
-            media_type="application/pdf",
-            headers={"Content-Disposition": f"attachment; filename=cotizacion_{pdf_data.get('folio', 'generated')}.pdf"}
+            stream, 
+            media_type=media_type,
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
         )
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    
+    # If multiple files, return as ZIP
+    import io
+    import zipfile
+
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+        for filename, stream in generated_files:
+            zip_file.writestr(filename, stream.getvalue())
+    
+    zip_buffer.seek(0)
+    
+    return StreamingResponse(
+        zip_buffer,
+        media_type="application/zip",
+        headers={"Content-Disposition": "attachment; filename=documentos.zip"}
+    )
 
 @app.post("/upload_multiple_files")
 async def upload_multiple_files(files: list[UploadFile] = File(...)):
@@ -178,48 +223,6 @@ async def upload_multiple_files_test(files: list[UploadFile] = File(...)):
              
         return {"status": "success", "mode": "TEST", "n8n_response": response.text, "files_sent": len(files_to_send)}
         
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/generate-contract")
-async def generate_contract(payload: list[dict] | dict):
-    """
-    Receives a JSON payload (list or dict) and generates a DOCX contract.
-    Uses the LW CONTRATO.docx template.
-    """
-    # Import the contract generator
-    import sys
-    sys.path.insert(0, 'pantillas/LW')
-    from contrato_generator import generate_contract_docx
-    
-    # Handle list input (n8n often sends a list of items)
-    if isinstance(payload, list):
-        if not payload:
-            raise HTTPException(status_code=400, detail="Empty list provided")
-        raw_data = payload[0]
-    else:
-        raw_data = payload
-    
-    # Template path
-    template_path = "pantillas/LW/LW CONTRATO.docx"
-    
-    if not os.path.exists(template_path):
-        raise HTTPException(status_code=500, detail=f"Template file not found: {template_path}")
-    
-    try:
-        # Generate the contract
-        contract_stream = generate_contract_docx(raw_data, template_path)
-        
-        # Get receptor name for filename
-        receptor = raw_data.get('receptor', 'contrato')
-        filename = f"contrato_{receptor.replace(' ', '_')}.docx"
-        
-        # Return as a streaming response
-        return StreamingResponse(
-            contract_stream,
-            media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-            headers={"Content-Disposition": f"attachment; filename={filename}"}
-        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
