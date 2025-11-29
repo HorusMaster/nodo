@@ -84,23 +84,22 @@ function App() {
           </p>
 
           {/* Test Mode Toggle */}
-          <div className="flex items-center justify-center gap-5 mt-8">
-            <span className={`text-lg font-bold ${!isTestMode ? 'text-green-400' : 'text-gray-500'}`}>
+          <div className="flex items-center justify-center gap-4 mt-8">
+            <span className={`text-sm font-bold tracking-wider ${!isTestMode ? 'text-green-400' : 'text-gray-600'}`}>
               PRODUCCIÓN
             </span>
-            <button
-              onClick={() => setIsTestMode(!isTestMode)}
-              className={`
-                relative w-24 h-12 rounded-full transition-all duration-300 shadow-xl
-                ${isTestMode ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-green-500 hover:bg-green-600'}
-              `}
-            >
-              <div className={`
-                absolute top-1.5 w-9 h-9 bg-white rounded-full shadow-lg transition-all duration-300
-                ${isTestMode ? 'left-[54px]' : 'left-1.5'}
-              `} />
-            </button>
-            <span className={`text-lg font-bold ${isTestMode ? 'text-yellow-400' : 'text-gray-500'}`}>
+
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                className="sr-only peer"
+                checked={isTestMode}
+                onChange={() => setIsTestMode(!isTestMode)}
+              />
+              <div className="w-14 h-7 bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-yellow-500"></div>
+            </label>
+
+            <span className={`text-sm font-bold tracking-wider ${isTestMode ? 'text-yellow-400' : 'text-gray-600'}`}>
               TEST
             </span>
           </div>
