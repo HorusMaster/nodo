@@ -13,7 +13,10 @@ export const uploadMultipleFiles = async (files, isTestMode = false) => {
 
   // Choose endpoint based on test mode
   const endpoint = isTestMode ? "upload_multiple_files_test" : "upload_multiple_files";
-  const BACKEND_URL = `http://localhost:8000/${endpoint}`;
+
+  // Use environment variable for backend URL, fallback to localhost for development
+  const BACKEND_BASE = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+  const BACKEND_URL = `${BACKEND_BASE}/${endpoint}`;
 
   // Create an AbortController for timeout
   const controller = new AbortController();

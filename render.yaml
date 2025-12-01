@@ -16,6 +16,9 @@ services:
     rootDir: frontend
     buildCommand: npm install && npm run build
     publishDir: dist
+    envVars:
+      - key: VITE_BACKEND_URL
+        value: https://nodo-miru.onrender.com
     routes:
       - type: rewrite
         source: /*
